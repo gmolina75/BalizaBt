@@ -1,0 +1,33 @@
+{
+  "name": "baliza-bt",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Bluetooth scanner and temporal analyzer",
+  "main": "cli.js",
+  "bin": {
+    "baliza": "./cli.js"
+  },
+  "scripts": {
+    "start": "node cli.js",
+    "scan": "node cli.js scan",
+    "list": "node cli.js list",
+    "temporal": "node cli.js temporal",
+    "patterns": "node cli.js patterns",
+    "stats": "node cli.js stats",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "@abandonware/noble": "^1.9.2-6",
+    "@abandonware/bluetooth-hci-socket": "^0.5.3-12"
+  },
+  "keywords": [
+    "bluetooth",
+    "ble",
+    "scanner",
+    "temporal",
+    "analysis"
+  ],
+  "author": "",
+  "license": "MIT"
+}
