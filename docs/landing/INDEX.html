@@ -1,0 +1,320 @@
+# Landing Page Specification
+
+## Page: BalizaBT — Bluetooth Asset Tracking & Indoor Positioning
+
+**URL:** https://balizabt.com  
+**Target Launch:** Q2 2027  
+**Audience:** Warehouse managers, facility managers, IoT developers, CTOs
+
+---
+
+## 1. Hero Section
+
+```html
+<header class="hero">
+  <nav>
+    <div class="logo">BalizaBT</div>
+    <ul class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#use-cases">Use Cases</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#demo">Live Demo</a>
+      <a href="#install">Get Started</a>
+    </ul>
+  </nav>
+
+  <div class="hero-content">
+    <h1>Track Anything, Anywhere — With ESP32 for $3</h1>
+    <p>Open-source Bluetooth LE positioning that runs on your hardware, your data, your rules. No cloud required.</p>
+    
+    <div class="hero-buttons">
+      <a href="#demo" class="btn-primary">Try Live Demo (No Hardware Needed)</a>
+      <a href="#install" class="btn-secondary">Install Now (Free)</a>
+    </div>
+
+    <div class="trust-badges">
+      <span class="badge">MIT License</span>
+      <span class="badge">✓ Windows • macOS • Linux</span>
+      <span class="badge">✓ ESP32 Native</span>
+      <span class="badge">✓ Offline First</span>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <img src="/assets/landing/warehouse-demo.png" alt="Warehouse asset tracking visualization">
+    <div class="live-stats">
+      <span class="stat">Real-time: 0 devices</span>
+      <span class="stat">Tracked: 0 assets</span>
+      <span class="stat">Avg. RSSI: -- dBm</span>
+    </div>
+  </div>
+</header>
+```
+
+---
+
+## 2. Features Section
+
+### 2.1 Feature Cards (3-column grid)
+
+#### Card 1: Sub-$5 Asset Tags
+```html
+<div class="feature-card">
+  <div class="feature-icon">🏷️</div>
+  <h3>Ultra-Cheap Tags</h3>
+  <p>Deploy hundreds of asset tags for $3 each using ESP32-C3. Track pallets, tools, forklifts, laptops, and more — at 1/10th the cost of proprietary solutions.</p>
+  <ul>
+    <li>✓ $3 hardware cost (vs $50+ for branded beacons)</li>
+    <li>✓ 2-year battery life on CR2032</li>
+    <li>✓ Open source firmware (customize everything)</li>
+  </ul>
+</div>
+```
+
+#### Card 2: Zero-Cloud Architecture
+```html
+<div class="feature-card">
+  <div class="feature-icon">🔒</div>
+  <h3>Zero-Cloud Architecture</h3>
+  <p>Your asset data stays on your network. No subscriptions, no vendor lock-in, no GDPR headaches. SQLite + REST API — you control the data.</p>
+  <ul>
+    <li>✓ Runs fully offline — no internet required</li>
+    <li>✓ SQLite local database (no cloud sync ever)</li>
+    <li>✓ Export to any tool (CSV, JSON, Grafana, PowerBI)</li>
+  </ul>
+</div>
+```
+
+#### Card 3: Instant Demo (Simulation Mode)
+```html
+<div class="feature-card">
+  <div class="feature-icon">⚡</div>
+  <h3>Try Before You Buy</h3>
+  <p>No Bluetooth hardware? No problem. Our simulation mode discovers 30+ realistic device types instantly. See it work in your browser — no installation needed.</p>
+  <ul>
+    <li>✓ Works on Windows, Mac, Linux without hardware</li>
+    <li>✓ 8 realistic device types (iPhone, AirPods, Galaxy, etc.)</li>
+    <li>✓ Temporal analysis + pattern detection</li>
+  </ul>
+  <a href="/demo" class="demo-link">→ Launch Demo Now</a>
+</div>
+```
+
+### 2.2 Feature Table
+
+| Feature | BalizaBT | Kontakt.io | Estimote | DIY/Open Source |
+|---------|----------|------------|----------|-----------------|
+| **Hardware Cost** | $3 | $25 | $40 | $5 |
+| **Monthly Fee** | $0 | $500+ | $300+ | $0 |
+| **On-Premise** | ✅ Yes | ❌ Cloud-only | ❌ Cloud-only | ✅ Manual |
+| **Live Demo** | ✅ Simulation | ❌ Hardware required | ❌ Hardware required | ❌ Code only |
+| **Source Available** | ✅ MIT License | ❌ Closed | ❌ Closed | ✅ (fragmented) |
+| **Enterprise Support** | ✅ Available | ✅ Premium | ✅ Premium | ❌ Community |
+
+---
+
+## 3. Live Demo Section
+
+```html
+<section id="demo" class="demo-section">
+  <h2>Live Demo — See It Work Without Any Hardware</h2>
+  <p>Click below to start a 30-second scan. We'll simulate discovery of 8+ realistic Bluetooth devices.</p>
+
+  <div class="demo-controls">
+    <button id="start-scan" class="btn-primary">▶ Start Live Scan (30s)</button>
+    <button id="reset-db" class="btn-secondary">Reset Database</button>
+  </div>
+
+  <div class="demo-results">
+    <!-- This section is populated by the demo script -->
+    <div id="devices-table">
+      <table>
+        <thead><tr><th>MAC Address</th><th>Name</th><th>RSSI</th><th>First Seen</th><th>Sightings</th></tr></thead>
+        <tbody id="devices-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+```
+
+---
+
+## 4. Use Cases
+
+### 4.1 Warehouse Operations
+```html
+<div class="use-case">
+  <img src="/assets/landing/warehouse.jpg">
+  <div>
+    <h3>🚚 Warehouse Asset Tracking</h3>
+    <p>Never lose a pallet again. Deploy BalizaBT tags on high-value items, forklifts, and pallets. Get real-time location with zone-level accuracy.</p>
+    <ul>
+      <li><strong>Pain:</strong> 2% of pallet moves are lost/stolen ($50K/month)</li>
+      <li><strong>Solution:</strong> 500 tags at $3 = $1,500 hardware</li>
+      <li><strong>ROI:</strong> Payback in 1st month</li>
+    </ul>
+  </div>
+</div>
+```
+
+### 4.2 Manufacturing Tool Tracking
+```
+Tool Cribs • Work-in-Progress • Maintenance Scheduling • Safety Compliance
+```
+
+### 4.3 Healthcare Equipment
+```
+IV Pumps • Defibrillators • Wheelchairs • Medication Carts
+```
+
+### 4.4 Office Space Management
+```
+Hot-desking • Meeting Room Utilization • Visitor Tracking • Badge Integration
+```
+
+### 4.5 Data Center Asset Tracking
+```
+Servers • Network Gear • Cables • Environmental Sensors
+```
+
+---
+
+## 5. How It Works (3 Steps)
+
+```html
+<div class="how-it-works">
+  <div class="step">
+    <div class="step-number">1</div>
+    <h4>Deploy Tags</h4>
+    <p>Stick $3 ESP32 beacon tags on assets. Battery lasts 2 years.</p>
+  </div>
+  <div class="step">
+    <div class="step-number">2</div>
+    <h4>Install Scanner</h4>
+    <p>Run BalizaBT scanner on any machine. It discovers all nearby tags.</p>
+  </div>
+  <div class="step">
+    <div class="step-number">3</div>
+    <h4>Analyze & Act</h4>
+    <p>Query positions, set alerts, export to your systems.</p>
+  </div>
+</div>
+```
+
+---
+
+## 6. Pricing Section
+
+```html
+<section id="pricing" class="pricing-section">
+  <h2>Simple, Transparent Pricing</h2>
+
+  <div class="pricing-grid">
+    <div class="plan">
+      <h3>Community</h3>
+      <p class="price">$0</p>
+      <p class="" tagline">Forever free. MIT license.</p>
+      <ul>
+        <li>✓ 10 tags</li>
+        <li>✓ 1 gateway</li>
+        <li>✓ CLI only</li>
+        <li>✓ Simulation mode</li>
+        <li>✓ Community support</li>
+      </ul>
+      <a href="/install" class="btn-primary">Get Started</a>
+    </div>
+
+    <div class="plan popular">
+      <h3>Professional</h3>
+      <p class="price">$2,999/year</p>
+      <p class="tagline">For growing businesses.</p>
+      <ul>
+        <li>✓ Unlimited tags</li>
+        <li>✓ 10 gateways</li>
+        <li>✓ REST API</li>
+        <li>✓ Web dashboard</li>
+        <li>✓ Email support</li>
+      </ul>
+      <a href="/signup?plan=pro" class="btn-primary">Start Free Trial</a>
+    </div>
+
+    <div class="plan">
+      <h3>Enterprise</h3>
+      <p class="price">Custom</p>
+      <p class="tagline">For large organizations.</p>
+      <ul>
+        <li>✓ Unlimited everything</li>
+        <li>✓ SSO/SAML</li>
+        <li>✓ SLA support</li>
+        <li>✓ Custom integrations</li>
+        <li>✓ On-site training</li>
+      </ul>
+      <a href="/contact" class="btn-secondary">Contact Sales</a>
+    </div>
+  </div>
+</section>
+```
+
+---
+
+## 7. Testimonials (Placeholder)
+
+```
+<div class="testimonials">
+  <blockquote>
+    "We saved $200K in lost pallet costs in the first year."
+    — Warehouse Manager, Fortune 500 Retailer
+  </blockquote>
+</div>
+```
+
+---
+
+## 8. CTA Section
+
+```html
+<section class="cta-section">
+  <h2>Ready to Track Your Assets?</h2>
+  <p>No credit card. No hardware required for demo. Just better asset tracking.</p>
+  <div class="cta-buttons">
+    <a href="/demo" class="btn-primary">Try Live Demo</a>
+    <a href="/install" class="btn-secondary">Install Free</a>
+    <a href="/contact" class="btn-outline">Talk to an Expert</a>
+  </div>
+</section>
+```
+
+---
+
+## 9. SEO Meta
+
+```html
+<title>BalizaBT — Open Source Bluetooth Asset Tracking ($3 Tags)</title>
+<meta name="description" content="Track assets, tools, pallets with $3 ESP32 Bluetooth tags. No cloud, no monthly fees. Zero-cloud architecture. Try the live demo now.">
+<meta name="keywords" content="bluetooth tracking, asset tracking, indoor positioning, ble beacons, rfid alternative, warehouse management, esp32, open source">
+```
+
+---
+
+## 10. Technical Requirements for Live Demo
+
+The live demo page will:
+1. Auto-load `scanner.js` (simulation mode, in-browser via WASM or pre-compiled scan)
+2. Run a 30-second simulated scan
+3. Display real-time devices in a table
+4. Show temporal mass + patterns after scan
+5. Update live stats counters
+
+### Demo Page JavaScript Integration
+```javascript
+// demo.js — runs the simulation in the browser
+// Uses pre-built scan results JSON for instant demo
+// No Node.js server required — static HTML + JS works on GitHub Pages
+
+import init, { scan, getStats, getTemporalMass } from './balizabt-demo.js';
+// Compiled WASM bundle of the Node.js scanner with simulation mode
+```
+
+---
+
+*End of Landing Page Spec*

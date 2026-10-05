@@ -159,6 +159,29 @@ This lets you:
 - Track signal strength changes (movement, battery)
 - Correlate with your manual annotations
 
+## 📚 Documentación Completa
+
+| Documento | Descripción |
+|----------|-------------|
+| 📖 [SDD](./docs/specs/SDD.md) | Diseño de Software completo |
+| 📱 [ESP32](./docs/specs/ESP32.md) | Firmware y programación de tags |
+| 🏗️ [Sistema](./docs/architecture/SYSTEM.md) | Arquitectura del sistema |
+| 🔬 [Deep Dive](./docs/architecture/TECH_DEEP_DIVE.md) | Análisis técnico profundo |
+| 🗺️ [Floor Plan](./docs/specs/FLOORPLAN.md) | Colocación y diseño de balizas |
+| 🧪 [Instalación](./docs/guides/INSTALL.md) | Guía de instalación paso a paso |
+| 🔧 [Hardware](./docs/guides/HARDWARE.md) | Tags ESP32 y componentes |
+| 📏 [Calibración](./docs/guides/CALIBRATION.md) | Calibración de precisión |
+| 🛠️ [Solución de Problemas](./docs/guides/TROUBLESHOOT.md) | Guía de troubleshooting |
+| 💰 [Precios](./docs/landing/PRICING.md) | Modelo de precios freemium |
+| ✨ [Características](./docs/landing/FEATURES.md) | Tabla completa de features |
+| ❓ [FAQ](./docs/landing/FAQ.md) | Preguntas frecuentes |
+| 🌐 [API](./docs/specs/API.md) | Documentación REST API |
+| 📈 [Competencia](./docs/market/COMPETITIVE.md) | Análisis de mercado |
+| 🚀 [Go-To-Market](./docs/market/GTM.md) | Estrategia de lanzamiento |
+| 🎬 [Guion Demo](./docs/presentations/DEMO_SCRIPT.md) | Script de demostración |
+| 🎯 [Hoja de Ruta](./docs/roadmap.md) | Roadmap del producto |
+| 📋 [Índice](./docs/INDEX.md) | Índice maestro de documentación |
+
 ## Extending
 
 ### Add Custom Device Fields
