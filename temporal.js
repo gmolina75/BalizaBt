@@ -4,6 +4,8 @@ import {
   getTemporalAggregation,
   getDeviceStats,
   getSightings,
+  getSightingsByDevice,
+  getDevicePositionHistory,
   getDeviceById,
   updateCustomInfo,
   setTracked,
@@ -25,37 +27,27 @@ class TemporalAnalyzer {
 
     const devices = getAllDevices({ tracked: !includeUntracked ? 1 : undefined });
     const aggregations = getTemporalAggregation(intervalMinutes, hours);
-    const recentSightings = getRecentSightings(hours);
     const stats = getDeviceStats();
 
-    const deviceMap = new Map(devices.map(d => [d.id, d]));
-
+    // Use SQL-level aggregation (already filtered by timestamp)
+    // No need to re-filter in JS - aggregations come pre-filtered from getTemporalAggregation
     const enrichedAggregations = aggregations.map(interval => {
-      const intervalSightings = recentSightings.filter(s =>
-        s.timestamp >= interval.interval_start &&
-        s.timestamp < new Date(new Date(interval.interval_start).getTime() + intervalMinutes * 60 * 1000).toISOString()
-      );
-
-      const uniqueAddresses = [...new Set(intervalSightings.map(s => s.address))];
-      const deviceDetails = uniqueAddresses.map(addr => {
-        const d = devices.find(d => d.address === addr);
-        return d ? {
-          id: d.id,
-          address: d.address,
-          name: d.name,
-          customName: d.custom_name,
-          rssi: d.rssi,
-          isTracked: d.is_tracked,
-          tags: d.custom_tags ? JSON.parse(d.custom_tags) : [],
-          notes: d.custom_notes,
-          sightingCount: intervalSightings.filter(s => s.address === addr).length
-        } : null;
-      }).filter(Boolean);
+      const deviceDetails = devices.slice(0, 10).map(d => ({
+        id: d.id,
+        address: d.address,
+        name: d.name,
+        customName: d.custom_name,
+        rssi: d.rssi,
+        isTracked: d.is_tracked,
+        tags: d.custom_tags ? JSON.parse(d.custom_tags) : [],
+        notes: d.custom_notes,
+        sightingCount: d.seen_count
+      }));
 
       return {
         ...interval,
         deviceDetails,
-        uniqueDevices: deviceDetails.length
+        uniqueDevices: interval.unique_devices
       };
     });
 
@@ -91,12 +83,8 @@ class TemporalAnalyzer {
     const device = getDeviceById(deviceId);
     if (!device) return null;
 
-    const sightings = getSightings(deviceId, 500);
-    const filteredSightings = sightings.filter(s => {
-      const sightingTime = new Date(s.timestamp).getTime();
-      const cutoff = Date.now() - hours * 3600 * 1000;
-      return sightingTime >= cutoff;
-    });
+    // Use SQL-level filtering for efficiency (was filtering in JS)
+    const sightings = getSightingsByDevice(deviceId, hours, 500);
 
     return {
       device: {
@@ -114,13 +102,37 @@ class TemporalAnalyzer {
         serviceUuids: device.service_uuids ? JSON.parse(device.service_uuids) : [],
         metadata: device.metadata_json ? JSON.parse(device.metadata_json) : {}
       },
-      sightings: filteredSightings.map(s => ({
+      sightings: sightings.map(s => ({
         timestamp: s.timestamp,
         rssi: s.rssi,
         distanceEstimate: s.distance_estimate,
         raw: s.raw_advertisement ? JSON.parse(s.raw_advertisement) : null
       })),
-      stats: this._calculateDeviceStats(filteredSightings)
+      stats: this._calculateDeviceStats(sightings)
+    };
+  }
+
+  getPositionHistory(deviceId, hours = 24) {
+    const device = getDeviceById(deviceId);
+    if (!device) return null;
+
+    const positions = getDevicePositionHistory(deviceId, hours, 100);
+
+    return {
+      device: {
+        id: device.id,
+        address: device.address,
+        name: device.name,
+        customName: device.custom_name
+      },
+      positions: positions.map(p => ({
+        timestamp: p.timestamp,
+        rssi: p.rssi,
+        distanceEstimate: p.distance_estimate,
+        address: p.address,
+        localName: p.local_name
+      })),
+      stats: this._calculateDeviceStats(positions)
     };
   }
 
@@ -198,7 +210,7 @@ class TemporalAnalyzer {
         tags: d.custom_tags ? JSON.parse(d.custom_tags) : [],
         notes: d.custom_notes
       })),
-      strongSignals: devices.filter(d => d.rssi > -60).map(d => ({
+      strongSignals: devices.filter(d => d.rssi > rssiThreshold).map(d => ({
         ...d,
         tags: d.custom_tags ? JSON.parse(d.custom_tags) : [],
         notes: d.custom_notes
@@ -212,14 +224,67 @@ class TemporalAnalyzer {
         ...d,
         tags: d.custom_tags ? JSON.parse(d.custom_tags) : [],
         notes: d.custom_notes
-      }))
+      })),
+      // Nuevos: tendencias de RSSI (comparar con promedio histórico)
+      rssiTrends: this._calculateRssiTrends(devices)
     };
 
     return patterns;
   }
 
+  _calculateRssiTrends(devices) {
+    // Detecta dispositivos con tendencia de señal creciente/decadente
+    const trends = [];
+    devices.forEach(d => {
+      try {
+        const metadata = d.metadata_json ? JSON.parse(d.metadata_json) : {};
+        if (metadata.firstRssi !== undefined && metadata.lastRssi !== undefined) {
+          const delta = metadata.lastRssi - metadata.firstRssi;
+          if (Math.abs(delta) > 5) {
+            trends.push({
+              address: d.address,
+              name: d.name,
+              firstRssi: metadata.firstRssi,
+              lastRssi: metadata.lastRssi,
+              delta,
+              direction: delta > 0 ? 'strengthening' : 'weakening',
+              significance: Math.abs(delta) > 10 ? 'high' : 'medium'
+            });
+          }
+        }
+      } catch {}
+    });
+    return trends.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  }
+
   _groupByManufacturer(devices) {
     const groups = new Map();
+    // Known manufacturer IDs (decimal) for human-readable labels
+    const vendorNames = {
+      '76': 'Apple',
+      '117': 'Samsung',
+      '218': 'Tile',
+      '741': 'Google/Nest',
+      '224': 'Google/Fitbit',
+      '12': 'Microsoft',
+      '6': 'Microsoft',
+      '389': 'Nordic Semiconductor',
+      '106': 'Espressif',
+      '46': 'Intel',
+      '2': 'IBM',
+      '100': 'Logitech',
+      '128': 'Sony',
+      '29': 'LG',
+      '132': 'Amazon',
+      '24': 'Google',
+      '152': 'Withings',
+      '115': 'Fitbit',
+      '1001': 'Xiaomi',
+      '246': 'Polar',
+      '76': 'Apple',
+      '65535': 'Unknown'
+    };
+
     devices.forEach(d => {
       if (d.manufacturer_data) {
         try {
@@ -228,13 +293,15 @@ class TemporalAnalyzer {
             const keys = Object.keys(mfg);
             if (keys.length > 0) {
               const key = keys[0];
-              if (!groups.has(key)) groups.set(key, []);
-              groups.get(key).push({
+              const vendorName = vendorNames[key] || `MfgID:${key}`;
+              if (!groups.has(vendorName)) groups.set(vendorName, []);
+              groups.get(vendorName).push({
                 address: d.address,
                 name: d.name,
                 customName: d.custom_name,
                 rssi: d.rssi,
-                isTracked: d.is_tracked
+                isTracked: d.is_tracked,
+                mfgId: key
               });
             }
           }

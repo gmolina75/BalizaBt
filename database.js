@@ -119,10 +119,14 @@ function recordSighting(deviceId, rssi, rawAdvertisement) {
   `).run(deviceId, rssi, distanceEstimate, JSON.stringify(rawAdvertisement));
 }
 
-function estimateDistance(rssi, txPower = -59) {
-  if (rssi === 0) return null;
-  const ratio = (txPower - rssi) / (10 * 2.5);
-  return Math.pow(10, ratio);
+function estimateDistance(rssi, txPower = -59, attenuationN = 2.5) {
+  if (rssi === 0 || rssi === null || rssi === undefined) return null;
+  // Modelo de pérdida de trayectoria logarítmica:
+  // d = 10^((RSSI_0 - RSSI) / (10 * n))
+  // RSSI_0 = RSSI a 1 metro (txPower)
+  // n = exponente de atenuación (2.5 = interior típico)
+  const ratio = (txPower - rssi) / (10 * attenuationN);
+  return Math.max(0, Math.pow(10, ratio));
 }
 
 function getAllDevices(filters = {}) {
@@ -184,6 +188,35 @@ function getSightings(deviceId, limit = 100) {
   `).all(deviceId, limit);
 }
 
+function getSightingsByDevice(deviceId, hours = 24, limit = 1000) {
+  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  return db.prepare(`
+    SELECT * FROM sightings
+    WHERE device_id = ? AND timestamp >= ?
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `).all(deviceId, since, limit);
+}
+
+function getDevicePositionHistory(deviceId, hours = 24, limit = 100) {
+  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  return db.prepare(`
+    SELECT
+      s.timestamp,
+      s.rssi,
+      s.distance_estimate,
+      s.raw_advertisement,
+      d.address,
+      d.name,
+      d.local_name
+    FROM sightings s
+    JOIN devices d ON s.device_id = d.id
+    WHERE s.device_id = ? AND s.timestamp >= ?
+    ORDER BY s.timestamp ASC
+    LIMIT ?
+  `).all(deviceId, since, limit);
+}
+
 function getRecentSightings(hours = 24, limit = 1000) {
   const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
   return db.prepare(`
@@ -198,9 +231,14 @@ function getRecentSightings(hours = 24, limit = 1000) {
 
 function getTemporalAggregation(intervalMinutes = 5, hours = 24) {
   const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  // Calculate the interval bucket start using integer division on minutes
+  // This is more portable than strftime manipulation
   return db.prepare(`
     SELECT
-      datetime(strftime('%Y-%m-%d %H:', timestamp) || printf('%02d', (strftime('%M', timestamp) / ?) * ?)) as interval_start,
+      datetime(timestamp, 'start of day') ||
+      printf('%02d', CAST(strftime('%H', timestamp) AS INTEGER)) ||
+      ':' ||
+      printf('%02d', CAST(strftime('%M', timestamp) / ? * ? AS INTEGER)) as interval_start,
       COUNT(DISTINCT device_id) as unique_devices,
       COUNT(*) as total_sightings,
       AVG(rssi) as avg_rssi,
@@ -233,7 +271,32 @@ function exportData(format = 'json') {
   if (format === 'json') {
     return JSON.stringify({ devices, sightings }, null, 2);
   }
+  if (format === 'csv') {
+    return exportToCSV(devices, sightings);
+  }
   return { devices, sightings };
+}
+
+function exportToCSV(devices, sightings) {
+  const lines = [];
+  lines.push('=== DEVICES ===');
+  lines.push('id,address,name,rssi,seen_count,is_tracked,custom_name,custom_notes,custom_tags,first_seen,last_seen');
+
+  devices.forEach(d => {
+    const tags = d.custom_tags ? JSON.parse(d.custom_tags).join(';') : '';
+    const name = (d.custom_name || d.name || '').replace(/,/g, ';');
+    lines.push(`${d.id},${d.address},${name},${d.rssi},${d.seen_count},${d.is_tracked},${d.custom_name || ''},${d.custom_notes || ''},${tags},${d.first_seen},${d.last_seen}`);
+  });
+
+  lines.push('');
+  lines.push('=== SIGHTINGS ===');
+  lines.push('id,device_id,timestamp,rssi,distance_estimate');
+
+  sightings.forEach(s => {
+    lines.push(`${s.id},${s.device_id},${s.timestamp},${s.rssi},${s.distance_estimate}`);
+  });
+
+  return lines.join('\n');
 }
 
 function close() {
@@ -252,10 +315,13 @@ export {
   updateCustomInfo,
   setTracked,
   getSightings,
+  getSightingsByDevice,
+  getDevicePositionHistory,
   getRecentSightings,
   getTemporalAggregation,
   getDeviceStats,
   exportData,
+  exportToCSV,
   close,
   estimateDistance
 };

@@ -22,6 +22,8 @@ class CLI {
       export: this.cmdExport.bind(this),
       stats: this.cmdStats.bind(this),
       history: this.cmdHistory.bind(this),
+      position: this.cmdPosition.bind(this),
+      trends: this.cmdTrends.bind(this),
       help: this.cmdHelp.bind(this)
     };
   }
@@ -374,9 +376,96 @@ class CLI {
 
     if (format === 'json') {
       console.log(data);
+    } else if (format === 'csv') {
+      console.log(data);
     } else {
-      console.log('Export format not supported:', format);
+      console.log('Export format not supported. Use: json or csv');
     }
+  }
+
+  async cmdPosition(args) {
+    const identifier = args[0];
+    const hours = parseInt(args[1]) || 24;
+
+    if (!identifier) {
+      console.error('Usage: baliza position <address|id> [hours]');
+      return;
+    }
+
+    let device = null;
+    if (/^\d+$/.test(identifier)) {
+      device = await import('./database.js').then(m => m.getDeviceById(parseInt(identifier)));
+    } else {
+      device = getDeviceByAddress(identifier);
+    }
+
+    if (!device) {
+      console.log('Device not found.');
+      return;
+    }
+
+    const history = analyzer.getPositionHistory(device.id, hours);
+    if (!history) {
+      console.log('Unable to retrieve position history.');
+      return;
+    }
+
+    console.log(`\n=== Position History for ${device.name || device.address} (${hours}h) ===`);
+    console.log(`Total position records: ${history.positions.length}`);
+
+    if (history.positions.length > 0) {
+      console.log('\nRecent Positions:');
+      history.positions.slice(0, 10).forEach(pos => {
+        const time = new Date(pos.timestamp).toLocaleTimeString();
+        console.log(`  ${time} | ${pos.address} | RSSI: ${pos.rssi} | Distance: ${pos.distanceEstimate.toFixed(2)}m`);
+      });
+    }
+
+    if (history.stats && history.stats.totalSightings > 0) {
+      console.log(`\nStatistics:`);
+      console.log(`  Distance: Min ${history.stats.distance.min.toFixed(2)}m | Max ${history.stats.distance.max.toFixed(2)}m | Avg ${history.stats.distance.avg.toFixed(2)}m`);
+      console.log(`  RSSI: Min ${history.stats.rssi.min} | Max ${history.stats.rssi.max} | Avg ${history.stats.rssi.avg.toFixed(1)}`);
+    }
+  }
+
+  async cmdTrends(args) {
+    const options = {};
+    for (let i = 0; i < args.length; i++) {
+      switch (args[i]) {
+        case '--hours':
+          options.hours = parseInt(args[++i]);
+          break;
+        case '--rssi-threshold':
+          options.rssiThreshold = parseInt(args[++i]);
+          break;
+      }
+    }
+
+    const patterns = analyzer.findPatterns(options);
+    const trends = patterns.rssiTrends;
+
+    console.log('\n=== RSSI Trend Analysis ===');
+    console.log(`Time window: ${options.hours || 24} hours`);
+    console.log(`RSSI threshold: ${options.rssiThreshold || -80} dBm`);
+
+    if (trends.length === 0) {
+      console.log('No significant RSSI trends detected.');
+      return;
+    }
+
+    console.log(`\nDetected ${trends.length} significant RSSI trends:`);
+    trends.slice(0, 10).forEach(trend => {
+      console.log(`  ${trend.address} | ${trend.name || 'Unknown'}`);
+      console.log(`    First RSSI: ${trend.firstRssi} → Last RSSI: ${trend.lastRssi} (Δ${trend.delta})`);
+      console.log(`    Direction: ${trend.direction} | Significance: ${trend.significance}`);
+    });
+
+    console.log('\nOther Patterns:');
+    console.log(`  Recurring devices: ${patterns.recurringDevices.length}`);
+    console.log(`  Strong signals: ${patterns.strongSignals.length}`);
+    console.log(`  Manufacturer groups: ${Object.keys(patterns.manufacturerGroups).length}`);
+    console.log(`  Service UUID groups: ${Object.keys(patterns.serviceGroups).length}`);
+    console.log(`  New devices: ${patterns.newDevices.length}`);
   }
 
   cmdHelp() {
@@ -395,7 +484,9 @@ Commands:
   temporal [options]                      Show temporal mass analysis
   stats                                   Show database statistics
   history <address|id> [hours]            Show device sighting history
-  export [json]                           Export all data
+  position <address|id> [hours]           Show device position history
+  export [format]                         Export all data (json|csv)
+  trends                                  Show RSSI trends and patterns
   help                                    Show this help
 
 List Options:
@@ -420,6 +511,14 @@ Temporal Options:
   --interval <min>       Aggregation interval in minutes (default: 5)
   --hours <n>            Time window in hours (default: 24)
 
+Patterns Options:
+  --min-occurrences <n>  Minimum sightings (default: 3)
+  --hours <n>            Time window in hours (default: 24)
+  --rssi <value>         RSSI threshold (default: -80)
+
+Export Options:
+  --format <type>        Export format: json or csv (default: json)
+
 Examples:
   baliza scan 30000
   baliza list --tracked
@@ -428,6 +527,9 @@ Examples:
   baliza patterns --hours 48 --min-occurrences 5
   baliza temporal --interval 10 --hours 12
   baliza history AA:BB:CC:DD:EE:FF 6
+  baliza position AA:BB:CC:DD:EE:FF 24
+  baliza export csv
+  baliza trends --hours 24
 `);
   }
 }
